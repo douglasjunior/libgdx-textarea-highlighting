@@ -1,6 +1,6 @@
 package com.github.douglasjunior.libgdxTextareaHighlighting.code_editor;
 
-import com.macbury.r0x16.widgets.JavaScriptScanner;
+import com.github.douglasjunior.libgdxTextareaHighlighting.JavaScriptScanner;
 
 import java.util.ArrayList;
 

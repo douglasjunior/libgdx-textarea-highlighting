@@ -1,7 +1,7 @@
 package com.github.douglasjunior.libgdxTextareaHighlighting.code_editor;
 
-import com.macbury.r0x16.widgets.JavaScriptScanner;
-import com.macbury.r0x16.widgets.JavaScriptScanner.Kind;
+import com.github.douglasjunior.libgdxTextareaHighlighting.JavaScriptScanner;
+import com.github.douglasjunior.libgdxTextareaHighlighting.JavaScriptScanner.Kind;
 
 public class Element {
     public JavaScriptScanner.Kind kind;

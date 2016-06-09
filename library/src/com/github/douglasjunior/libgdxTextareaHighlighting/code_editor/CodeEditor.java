@@ -1,46 +1,35 @@
 package com.github.douglasjunior.libgdxTextareaHighlighting.code_editor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-
-import org.lwjgl.input.Mouse;
-
-import com.badlogic.gdx.scenes.scene2d.ui.Skin;
-import com.badlogic.gdx.scenes.scene2d.ui.Slider;
-import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.GL10;
+import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.BitmapFont.TextBounds;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Event;
-import com.badlogic.gdx.scenes.scene2d.EventListener;
-import com.badlogic.gdx.scenes.scene2d.Group;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Slider;
+import com.badlogic.gdx.scenes.scene2d.ui.Widget;
+import com.badlogic.gdx.scenes.scene2d.utils.DragListener;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import com.badlogic.gdx.scenes.scene2d.utils.FocusListener.FocusEvent;
 import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack;
-import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Clipboard;
-import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.badlogic.gdx.utils.Timer;
 import com.badlogic.gdx.utils.Timer.Task;
-import com.macbury.r0x16.Core;
-import com.macbury.r0x16.manager.ResourceManager;
-import com.macbury.r0x16.widgets.JavaScriptScanner;
-import com.macbury.r0x16.widgets.JavaScriptScanner.Kind;
+import com.github.douglasjunior.libgdxTextareaHighlighting.JavaScriptScanner;
+
+import java.util.ArrayList;
+import java.util.HashMap;
 
 public class CodeEditor extends Widget {
     static private final char BACKSPACE = '\b';
@@ -49,14 +38,16 @@ public class CodeEditor extends Widget {
     static private final char TAB = '\t';
     static private final char DELETE = 127;
     static private final char BULLET = 149;
-    ShapeRenderer shape;
-    CodeEditorStyle style;
+    private ShapeRenderer shape;
+    private CodeEditorStyle style;
+    private final BitmapFont font;
+    private final GlyphLayout glyphLayout = new GlyphLayout();
     private final static int GUTTER_PADDING = 10;
     private static final String TAG = "CodeEditor";
     private static final float LINE_PADDING = 2;
 
     private ArrayList<Line> lines;
-    boolean disabled;
+    private boolean disabled;
     private String text = "";
 
     private Caret caret;
@@ -67,10 +58,10 @@ public class CodeEditor extends Widget {
     private long lastBlink;
     private boolean cursorOn;
     private Clipboard clipboard;
-    private ClickListener inputListener;
-    KeyRepeatTask keyRepeatTask = new KeyRepeatTask();
-    float keyRepeatInitialTime = 0.4f;
-    float keyRepeatTime = 0.1f;
+    private InputListener inputListener;
+    private KeyRepeatTask keyRepeatTask = new KeyRepeatTask();
+    private float keyRepeatInitialTime = 0.4f;
+    private float keyRepeatTime = 0.1f;
     private Slider scrollbar;
     private Rectangle scissors;
     private Rectangle clipBounds;
@@ -85,6 +76,7 @@ public class CodeEditor extends Widget {
 
     public CodeEditor(Skin skin) {
         style = skin.get(CodeEditorStyle.class);
+        font = skin.getFont("default-font");
         lines = new ArrayList<Line>();
         styles = new HashMap<JavaScriptScanner.Kind, Color>();
 
@@ -114,7 +106,7 @@ public class CodeEditor extends Widget {
 
     private void initializeKeyboard() {
 
-        addListener(inputListener = new ClickListener() {
+        addListener(inputListener = new DragListener() {
 
             @Override
             public boolean handle(Event event) {
@@ -262,7 +254,8 @@ public class CodeEditor extends Widget {
                 }
                 caret.setCol(spaces);
                 updateScrollInDownDirectionForRow();
-            } else if (getFont().containsCharacter(character)) {
+            } else if (getFont().getData().hasGlyph(character)
+                    && Character.getType(character) != Character.CONTROL) {
                 insertText(String.valueOf(character));
                 caret.incCol(1);
                 updateScrollInLeftDirectionForCol();
@@ -585,7 +578,7 @@ public class CodeEditor extends Widget {
     }
 
     @Override
-    public void draw(SpriteBatch renderBatch, float parentAlpha) {
+    public void draw(Batch renderBatch, float parentAlpha) {
         Stage stage = getStage();
         boolean focused = stage != null && stage.getKeyboardFocus() == this;
 
@@ -641,8 +634,8 @@ public class CodeEditor extends Widget {
                 cursorColStart = caret.getCol();
             }
 
-            Gdx.gl.glEnable(GL10.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
             shape.begin(ShapeType.Filled);
             shape.setColor(1.0f, 1.0f, 1.0f, 0.1f);
@@ -679,17 +672,17 @@ public class CodeEditor extends Widget {
 
             shape.end();
 
-            Gdx.gl.glDisable(GL10.GL_BLEND);
+            Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
         if (focused && !caret.haveSelection()) {
-            Gdx.gl.glEnable(GL10.GL_BLEND);
-            Gdx.gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
+            Gdx.gl.glEnable(GL20.GL_BLEND);
+            Gdx.gl.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
             shape.begin(ShapeType.Filled);
             shape.setColor(1.0f, 1.0f, 1.0f, 0.1f);
             shape.rect(sx, (sy + height) - (caret.getRow() + 1 - caret.getRowScrollPosition()) * getLineHeight(), width, getLineHeight());
             shape.end();
-            Gdx.gl.glDisable(GL10.GL_BLEND);
+            Gdx.gl.glDisable(GL20.GL_BLEND);
         }
 
         renderBatch.begin();
@@ -703,11 +696,11 @@ public class CodeEditor extends Widget {
 
             for (int x = 0; x < line.size(); x++) {
                 Element elem = line.get(x);
-                TextBounds bounds = font.getBounds(elem.text);
+                glyphLayout.setText(getFont(), elem.text);
                 font.setColor(styles.get(elem.kind));
                 font.draw(renderBatch, elem.text, sx + gutterWidth() + GUTTER_PADDING + lineElementX - xOffset, linePosY);
 
-                lineElementX += bounds.width;
+                lineElementX += glyphLayout.width;
                 //if (lineElementX > toChar) {
                 //  break;
                 //}
@@ -727,7 +720,8 @@ public class CodeEditor extends Widget {
             String lineNumberString = Integer.toString(fromLine + y + 1);
             float linePosY = (sy + height + font.getDescent()) - y * getLineHeight();
             font.setColor(Color.WHITE);
-            font.draw(renderBatch, lineNumberString, sx + gutterWidth() - font.getBounds(lineNumberString).width, linePosY);
+            glyphLayout.setText(font, lineNumberString);
+            font.draw(renderBatch, lineNumberString, sx + gutterWidth() - glyphLayout.width, linePosY);
         }
 
         font.setColor(Color.WHITE);
@@ -749,7 +743,7 @@ public class CodeEditor extends Widget {
 
 
     private BitmapFont getFont() {
-        return ResourceManager.shared().getFont("CURRIER_NEW");
+        return font;
     }
 
     private void blink() {
