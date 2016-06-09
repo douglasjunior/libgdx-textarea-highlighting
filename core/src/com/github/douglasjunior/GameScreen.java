@@ -50,21 +50,20 @@ public class GameScreen implements Screen {
         skin.load(fileHandle);
 
         CodeEditor editor = new CodeEditor(skin);
-        editor.setPosition(50, 50);
-        editor.setSize(500, 300);
-        editor.setText("//Construtor\n" +
-                "function Exemplo() {\n" +
-                "        this.propriedade = 'Isso é uma propriedade.',\n" +
-                "        this.metodo = function() {\n" +
-                "              return 'Isso é um metódo';\n" +
+        editor.setPosition(20, 50);
+        editor.setSize(600, 300);
+        editor.setText("/* Finds the lowest common multiple (LCM) of two numbers */\n" +
+                "function LCMCalculator(x, y) { // constructor function\n" +
+                "    var checkInt = function (x) { // inner function\n" +
+                "        if (x % 1 !== 0) {\n" +
+                "            throw new TypeError(x + \" is not an integer\"); // throw an exception\n" +
                 "        }\n" +
-                "}\n" +
-                "\n" +
-                "var objeto = new Exemplo(); //Instância do construtor \"Exemplo\"\n" +
-                "\n" +
-                "//Alerta os respectivos textos na tela\n" +
-                "alert( objeto.propriedade ),\n" +
-                "alert( objeto.metodo() );");
+                "        return x;\n" +
+                "    };\n" +
+                "    this.a = checkInt(x)\n" +
+                "    //   semicolons   ^^^^  are optional, a newline is enough\n" +
+                "    this.b = checkInt(y);\n" +
+                "}");
         stage.addActor(editor);
     }
 
