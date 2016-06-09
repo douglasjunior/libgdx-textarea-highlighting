@@ -10,19 +10,33 @@ import java.io.Reader;
 public class JavaScriptScanner {
 
     public enum Kind {
-        /** End of file - this token has no text */
+        /**
+         * End of file - this token has no text
+         */
         EOF,
-        /** End of line - this token has no text */
+        /**
+         * End of line - this token has no text
+         */
         NEWLINE,
-        /** Normal text - does not include line breaks */
+        /**
+         * Normal text - does not include line breaks
+         */
         NORMAL,
-        /** A keyword */
+        /**
+         * A keyword
+         */
         KEYWORD,
-        /** A string or character constant */
+        /**
+         * A string or character constant
+         */
         STRING,
-        /** A comment - multi line comments are split up and {@link NEWLINE} tokens are inserted */
+        /**
+         * A comment - multi line comments are split up and {@link NEWLINE} tokens are inserted
+         */
         COMMENT,
-        /** A javadoc tag inside a comment */
+        /**
+         * A javadoc tag inside a comment
+         */
         COMMENT_TAG,
         NUMBER,
         SPECIAL_KEYWORD
@@ -35,11 +49,11 @@ public class JavaScriptScanner {
     private final CharacterIterator iterator;
 
     private boolean inMultiLineComment;
-    
+
     public JavaScriptScanner(CharSequence cs) {
         this.iterator = new CharacterIterator(cs);
     }
-    
+
     public JavaScriptScanner(Reader r) {
         this.iterator = new CharacterIterator(r);
     }
@@ -47,18 +61,18 @@ public class JavaScriptScanner {
     /**
      * Scans for the next token.
      * Read errors result in EOF.
-     *
+     * <p/>
      * Use {@link #getString()} to retrieve the string for the parsed token.
-     * 
+     *
      * @return the next token.
      */
     public Kind scan() {
         iterator.clear();
-        if(inMultiLineComment) {
+        if (inMultiLineComment) {
             return scanMultiLineComment(false);
         }
         int ch = iterator.next();
-        switch(ch) {
+        switch (ch) {
             case CharacterIterator.EOF:
                 return Kind.EOF;
             case '\n':
@@ -68,7 +82,7 @@ public class JavaScriptScanner {
                 scanString(ch);
                 return Kind.STRING;
             case '/':
-                switch(iterator.peek()) {
+                switch (iterator.peek()) {
                     case '/':
                         iterator.advanceToEOL();
                         return Kind.COMMENT;
@@ -91,42 +105,42 @@ public class JavaScriptScanner {
     public String getString() {
         return iterator.getString();
     }
-    
+
     public int getCurrentPosition() {
         return iterator.getCurrentPosition();
     }
 
     private void scanString(int endMarker) {
-        for(;;) {
+        for (; ; ) {
             int ch = iterator.next();
-            if(ch == '\\') {
+            if (ch == '\\') {
                 iterator.next();
-            } else if(ch == endMarker || ch == '\n' || ch == '\r') {
+            } else if (ch == endMarker || ch == '\n' || ch == '\r') {
                 return;
             }
         }
     }
-    
+
     private Kind scanMultiLineComment(boolean start) {
         int ch = iterator.next();
-        if(!start && ch == '\n') {
+        if (!start && ch == '\n') {
             return Kind.NEWLINE;
         }
-        if(ch == '@') {
+        if (ch == '@') {
             iterator.advanceIdentifier();
             return Kind.COMMENT_TAG;
         }
-        for(;;) {
-            if(ch < 0 || (ch == '*' && iterator.peek() == '/')) {
+        for (; ; ) {
+            if (ch < 0 || (ch == '*' && iterator.peek() == '/')) {
                 iterator.next();
                 inMultiLineComment = false;
                 return Kind.COMMENT;
             }
-            if(ch == '\n') {
+            if (ch == '\n') {
                 iterator.pushback();
                 return Kind.COMMENT;
             }
-            if(ch == '@') {
+            if (ch == '@') {
                 iterator.pushback();
                 return Kind.COMMENT;
             }
@@ -135,44 +149,44 @@ public class JavaScriptScanner {
     }
 
     private Kind scanNormal(int ch) {
-      for(;;) {
-        switch(ch) {
-          case '\n':
-          case '\"':
-          case '\'':
-          case CharacterIterator.EOF:
-            iterator.pushback();
-            return Kind.NORMAL;
-          case '/':
-            if(iterator.check("/*")) {
-                iterator.pushback();
-                return Kind.NORMAL;
+        for (; ; ) {
+            switch (ch) {
+                case '\n':
+                case '\"':
+                case '\'':
+                case CharacterIterator.EOF:
+                    iterator.pushback();
+                    return Kind.NORMAL;
+                case '/':
+                    if (iterator.check("/*")) {
+                        iterator.pushback();
+                        return Kind.NORMAL;
+                    }
+                    break;
+                default:
+                    if (Character.isJavaIdentifierStart(ch)) {
+                        iterator.setMarker(true);
+                        iterator.advanceIdentifier();
+                        if (iterator.isKeyword(KEYWORD_LIST)) {
+                            if (iterator.isMarkerAtStart()) {
+                                return Kind.KEYWORD;
+                            }
+                            iterator.rewindToMarker();
+                            return Kind.NORMAL;
+                        } else if (iterator.isKeyword(SPECIAL_KEYWORD_LIST)) {
+                            if (iterator.isMarkerAtStart()) {
+                                return Kind.SPECIAL_KEYWORD;
+                            }
+                            iterator.rewindToMarker();
+                            return Kind.NORMAL;
+                        } else if (Character.isDigit(ch)) {
+                            return Kind.NUMBER;
+                        }
+                    }
+                    break;
             }
-            break;
-          default:
-            if(Character.isJavaIdentifierStart(ch)) {
-              iterator.setMarker(true);
-              iterator.advanceIdentifier();
-              if(iterator.isKeyword(KEYWORD_LIST)) {
-                if(iterator.isMarkerAtStart()) {
-                    return Kind.KEYWORD;
-                }
-                iterator.rewindToMarker();
-                return Kind.NORMAL;
-              } else if(iterator.isKeyword(SPECIAL_KEYWORD_LIST)) {
-                if(iterator.isMarkerAtStart()) {
-                  return Kind.SPECIAL_KEYWORD;
-                }
-                iterator.rewindToMarker();
-                return Kind.NORMAL;
-              } else if (Character.isDigit(ch)) {
-                return Kind.NUMBER;
-              } 
-            }
-            break;
+            ch = iterator.next();
         }
-        ch = iterator.next();
-      }
     }
-    
+
 }
